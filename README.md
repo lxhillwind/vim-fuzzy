@@ -10,7 +10,8 @@
     - partially; the mouse cursor is always at the end;
 
 ## external executable dependency
-- On Windows, `bash.exe` or `busybox.exe` is required for `PickCwdFiles` / `PickGotoProject`;
+- On Windows, `bash.exe` or `busybox.exe` is required for functions invoking
+  shellcmd (`PickGotoProject`);
     - You can get `bash.exe` from "Git for Windows" project, and ensure it is in `%PATH%`;
     - Alternatively, you can get `busybox.exe` from busybox-w32 project, and put it in `%PATH%`;
     - Preferring `bash.exe` over `busybox.exe`, since `bash.exe` (Git for Windows) is more CJK friendly.
@@ -26,7 +27,6 @@ if has('win32') && executable('git') && !executable('bash')
 endif
 ```
 
-- On Unix-like systems, `find` or `bfs` is required for `PickCwdFiles`;
 - On Unix-like systems, `find` and `sed` are required for `PickGotoProject`;
 
 ## builtin functionality (exposed as mappings)
@@ -57,8 +57,13 @@ arguments; when confirmed, Vim will edit the selected item.
 - `<C-c>` / `<C-[>` / `<Esc>` / (when the search string is empty: `<C-d>`) to quit fuzzy finder;
 
 ## extend functionalities by yourself
-This plugin exposes `g:Pick()` UserFunction; you need to see how other
-mappings use it.
+This plugin exposes autoload functions:
+
+- `fuzzy#Pick()`: endpoint to launch the fuzzy finder;
+- `fuzzy#AppendItems()`: if you want to provide the input asynchronously
+  without job related functions.
+
+you need to see how other mappings use them.
 
 *You can go to other mappings' defenitions quickly by pressing `<Space>fm` and filter by "pick", if you have enabled this plugin.*
 
