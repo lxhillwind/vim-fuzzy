@@ -10,7 +10,22 @@
     - partially; the mouse cursor is always at the end;
 
 ## external executable dependency
-- On Windows, `busybox.exe` is required for `PickCwdFiles` / `PickGotoProject`;
+- On Windows, `bash.exe` or `busybox.exe` is required for `PickCwdFiles` / `PickGotoProject`;
+    - You can get `bash.exe` from "Git for Windows" project, and ensure it is in `%PATH%`;
+    - Alternatively, you can get `busybox.exe` from busybox-w32 project, and put it in `%PATH%`;
+    - Preferring `bash.exe` over `busybox.exe`, since `bash.exe` (Git for Windows) is more CJK friendly.
+
+> If you have configured that only the `git` executable is available from
+> command prompt (cmd.exe), then you can add the following snippet to your
+> vimrc:
+
+```vim
+if has('win32') && executable('git') && !executable('bash')
+    " in vim9script, remove the "let" and this line of comment.
+    let $PATH = $PATH .. ';' .. exepath('git')->substitute('\v[\/]cmd[\/]git.exe$', '/bin', '')
+endif
+```
+
 - On Unix-like systems, `find` or `bfs` is required for `PickCwdFiles`;
 - On Unix-like systems, `find` and `sed` are required for `PickGotoProject`;
 

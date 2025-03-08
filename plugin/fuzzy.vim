@@ -288,10 +288,13 @@ enddef
 # job_start() arg builder {{{1
 def ConstructCmd(cmd: string): any
     if is_win32
-        if !executable('busybox')
-            throw 'fuzzy.vim: "busybox.exe" is expected for this functionality, but is not found in %PATH%.'
+        if executable('bash')
+            return $'bash -c {Win32Quote(cmd)}'
+        elseif executable('busybox')
+            return $'busybox sh -c {Win32Quote(cmd)}'
+        else
+            throw 'fuzzy.vim: "bash.exe" or "busybox.exe" is expected for this functionality, but is not found in %PATH%.'
         endif
-        return $'busybox sh -c {Win32Quote(cmd)}'
     else
         var argv = ['/bin/sh', '-c']
         if executable(&shell) && &shellcmdflag =~ '\v^[a-zA-Z0-9._/@:-]+$'
