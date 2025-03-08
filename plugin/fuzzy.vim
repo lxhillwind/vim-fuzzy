@@ -2,6 +2,10 @@ vim9script
 
 command! -nargs=+ -complete=shellcmd Pick PickAnyCli(<q-args>)
 
+# exposed mappings;
+# DO NOT change these two lines marked with "MARKER"!
+# They are used in README.md (comment).
+# MARKER
 nnoremap <Space>ff <ScriptCmd>PickCwdFiles()<CR>
 nnoremap <Space>fr <ScriptCmd>PickRecentFiles()<CR>
 nnoremap <Space>fp <ScriptCmd>PickGotoProject()<CR>
@@ -11,6 +15,7 @@ nnoremap <Space>fa :Pick<Space>
 nnoremap <Space>fl <ScriptCmd>PickLines()<CR>
 nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
 nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
+# MARKER
 
 # common var {{{1
 const is_win32 = has('win32')
@@ -35,6 +40,9 @@ def g:Pick(Title: string = '', Cmd: string = '', Lines: list<string> = [], Callb
     if has_key(state, 'job_id')
         state->remove('job_id')
     endif
+    # construct cmd early, so we can detect if dependency requirements are matched.
+    const job_cmd: any = empty(Cmd) ? v:none : ConstructCmd(Cmd)
+
     state.callback = Callback
     state.lines_all = []  # list<string>
     state.lines_matched = []  # list<string>
@@ -70,7 +78,7 @@ def g:Pick(Title: string = '', Cmd: string = '', Lines: list<string> = [], Callb
     if empty(Cmd)
         state.lines_all = Lines
     else
-        var cmd_opt = execute($'Sh -n {Cmd}')->json_decode()
+        var cmd_opt = {cmd: job_cmd, opt: {}}
         cmd_opt.opt.out_mode = 'nl'
         cmd_opt.opt.out_cb = (_, msg) => {
             if !empty(state)  # in case of StateCleanup() is called.
@@ -275,6 +283,42 @@ def SourceRefresh()
     if !input_empty && state.line_offset < state.lines_all->len()
         state.timer = timer_start(100, (_) => SourceRefresh())
     endif
+enddef
+
+# job_start() arg builder {{{1
+def ConstructCmd(cmd: string): any
+    if is_win32
+        if !executable('busybox')
+            throw 'fuzzy.vim: "busybox.exe" is expected for this functionality, but is not found in %PATH%.'
+        endif
+        return $'busybox sh -c {Win32Quote(cmd)}'
+    else
+        var argv = ['/bin/sh', '-c']
+        if executable(&shell) && &shellcmdflag =~ '\v^[a-zA-Z0-9._/@:-]+$'
+            # No need to do shellsplit; we can use these settings directly.
+            # Use &shell if possible: it may be more functional.
+            argv = [&shell, &shellcmdflag]
+        endif
+        argv->add(cmd)
+        return argv
+    endif
+enddef
+
+def Win32Quote(arg: string): string
+    # copied from vim-sh: https://github.com/lxhillwind/vim-sh
+    #
+    # To make quote work reliably, it is worth reading:
+    # <https://daviddeley.com/autohotkey/parameters/parameters.htm>
+    var cmd = arg
+    # double all \ before "
+    cmd = substitute(cmd, '\v\\([\\]*")@=', '\\\\', 'g')
+    # double trailing \
+    cmd = substitute(cmd, '\v\\([\\]*$)@=', '\\\\', 'g')
+    # escape " with \
+    cmd = escape(cmd, '"')
+    # quote it
+    cmd = '"' .. cmd .. '"'
+    return cmd
 enddef
 
 # various pick function {{{1
