@@ -1,7 +1,7 @@
 # a fuzzy finder
 
 <!-- from issues -->
-![Screenshot](https://github.com/user-attachments/assets/b23ac128-e5eb-47f8-a3b4-83e5861e5573)
+![Screenshot](https://github.com/user-attachments/assets/6ca876cf-715b-4380-a94a-044156c125ec)
 
 ## feature
 - use Vim's `matchfuzzy()` function; do not depend on an external executable (like fzf / skim / zf...);
