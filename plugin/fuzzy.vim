@@ -157,13 +157,27 @@ def PickRecentFiles() # {{{2
 enddef
 
 def PickCwdFiles() # {{{2
+    var [arg_2, arg_3] = [
+        executable('bfs') ? "bfs '!' -type d" : "find '!' -type d",
+        v:none,
+    ]
+    if exists('g:fuzzy#cwdfiles#vim_func') ? g:fuzzy#cwdfiles#vim_func : (
+            # TODO: figure out why vim_func is faster than bfs/find on some systems,
+            # but not true on others.
+            !has('mac')
+            )
+        [arg_2, arg_3] = [
+            v:none,
+            () => {
+                var remains = readdir('.')
+                CwdFilesImpl(remains)
+            },
+        ]
+    endif
     fuzzy.Pick(
         'CurrentDirFiles',
-        v:none,
-        () => {
-            var remains = readdir('.')
-            CwdFilesImpl(remains)
-        },
+        arg_2,
+        arg_3,
         (s) => {
             execute 'e' fnameescape(s)
         }
