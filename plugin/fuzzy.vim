@@ -157,22 +157,24 @@ def PickRecentFiles() # {{{2
 enddef
 
 def PickCwdFiles() # {{{2
+    var find_cmd = ''
+    if is_win32 ? (executable('bash') || executable('busybox')) : true
+        if executable('bfs')
+           find_cmd = "bfs '!' -type d"
+        elseif executable('find')
+            find_cmd = "find '!' -type d"
+        endif
+    endif
     var [arg_2, arg_3] = [
-        executable('bfs') ? "bfs '!' -type d" : "find '!' -type d",
         v:none,
+        () => {
+            var remains = readdir('.')
+            CwdFilesImpl(remains)
+        },
     ]
-    if exists('g:fuzzy#cwdfiles#vim_func') ? g:fuzzy#cwdfiles#vim_func : (
-            # TODO: figure out why vim_func is faster than bfs/find on some systems,
-            # but not true on others.
-            !has('mac')
-            )
-        [arg_2, arg_3] = [
-            v:none,
-            () => {
-                var remains = readdir('.')
-                CwdFilesImpl(remains)
-            },
-        ]
+    if !empty(find_cmd) && exists('g:fuzzy#cwdfiles#vim_func') && !g:fuzzy#cwdfiles#vim_func
+        # use find_cmd only when explicitly specified.
+        [arg_2, arg_3] = [find_cmd, v:none]
     endif
     fuzzy.Pick(
         'CurrentDirFiles',

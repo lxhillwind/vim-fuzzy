@@ -51,6 +51,9 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
         endif
     else
         var cmd_opt = {cmd: job_cmd, opt: {}}
+        # If we change out_mode to 'raw', and do split in our side,
+        # then job performance can be largely improved;
+        # But the result may not be accurate. So leave it as is.
         cmd_opt.opt.out_mode = 'nl'
         cmd_opt.opt.out_cb = (_, msg) => {
             AppendItems([msg])

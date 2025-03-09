@@ -29,6 +29,11 @@ endif
 
 - On Unix-like systems, `find` and `sed` are required for `PickGotoProject`;
 
+- When `bfs` or `find` is available, and variable `g:fuzzy#cwdfiles#vim_func`
+  is set to `0`, then the executable is used for `PickCwdFiles`; otherwise
+  Vim's readdir() is used (it may be slower or faster depending on OS /
+  hardware, but the performance should be acceptable. So it is the default.)
+
 ## builtin functionality (exposed as mappings)
 <!-- update this section with vim:
 :Codegen echo '```vim'; awk '/^# *MARKER/ { if(m) {exit} else {m=1; next} } (m) {print}' plugin/fuzzy.vim; echo '```'
