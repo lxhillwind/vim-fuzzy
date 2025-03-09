@@ -43,6 +43,9 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
     # callback will be executed after back in main loop, so it is safe to fill
     # state.lines_all after timer creation.
     state.timer = timer_start(0, (_) => SourceRefresh())
+    # set state.items_update_timer to a valid value;
+    # avoid AppendItems() calling SourceRefresh() too frequently.
+    state.items_update_timer = timer_start(0, (_) => true)
     if empty(Cmd)
         if type(Lines) == type([])
             state.lines_all = Lines
@@ -70,9 +73,13 @@ export def AppendItems(items: list<string>): bool
         return false
     endif
     state.lines_all->extend(items)
-    # when timer callback is called, timer_info() will return [].
-    if empty(timer_info(state.timer))
-        SourceRefresh()
+    if empty(timer_info(state.items_update_timer))
+        state.items_update_timer = timer_start(10, (_) => {
+            # when timer callback is called, timer_info() will return [].
+            if empty(timer_info(state.timer))
+                SourceRefresh()
+            endif
+        })
     endif
     return true
 enddef
@@ -171,6 +178,7 @@ def StateCleanup()
     # do clean up in timer instead of popup callback, so timer / job can be
     # stopped cleanly.
     timer_stop(state.timer)
+    timer_stop(state.items_update_timer)
     if state->has_key('job_id')
         job_stop(state.job_id)
         sleep 100m

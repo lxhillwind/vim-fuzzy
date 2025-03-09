@@ -31,8 +31,8 @@ endif
 
 - When `bfs` or `find` is available, and variable `g:fuzzy#cwdfiles#vim_func`
   is set to `0`, then the executable is used for `PickCwdFiles`; otherwise
-  Vim's readdir() is used (it may be slower or faster depending on OS /
-  hardware, but the performance should be acceptable. So it is the default.)
+  Vim's readdir() is used (it is slower to count files than `find`, but the
+  fuzzy functionality may be faster. So it is the default.)
 
 ## builtin functionality (exposed as mappings)
 <!-- update this section with vim:
