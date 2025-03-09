@@ -1,9 +1,5 @@
 vim9script
 
-var state: dict<any> = {}
-
-const CHUNK_SIZE = 5'000
-
 export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback: func(any) = v:none)
     if has_key(state, 'job_id')
         state->remove('job_id')
@@ -39,13 +35,13 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
         },
     })
     const buf = winbufnr(state.winid)
-    # set state.timer to a valid value;
+    # set state.timer_match to a valid value;
     # callback will be executed after back in main loop, so it is safe to fill
     # state.lines_all after timer creation.
-    state.timer = timer_start(0, (_) => SourceRefresh())
-    # set state.items_update_timer to a valid value;
-    # avoid AppendItems() calling SourceRefresh() too frequently.
-    state.items_update_timer = timer_start(0, (_) => true)
+    state.timer_match = timer_start(0, (_) => UpdateMatch())
+    # set state.timer_source to a valid value;
+    # avoid AppendItems() calling UpdateMatch() too frequently.
+    state.timer_source = timer_start(0, (_) => true)
     if empty(Cmd)
         if type(Lines) == type([])
             state.lines_all = Lines
@@ -73,11 +69,11 @@ export def AppendItems(items: list<string>): bool
         return false
     endif
     state.lines_all->extend(items)
-    if empty(timer_info(state.items_update_timer))
-        state.items_update_timer = timer_start(10, (_) => {
+    if empty(timer_info(state.timer_source))
+        state.timer_source = timer_start(10, (_) => {
             # when timer callback is called, timer_info() will return [].
-            if empty(timer_info(state.timer))
-                SourceRefresh()
+            if empty(timer_info(state.timer_match))
+                UpdateMatch()
             endif
         })
     endif
@@ -133,8 +129,8 @@ def PopupFilter(winid: number, key: string): bool
         state.input ..= key
     endif
 
-    timer_stop(state.timer)
-    defer SourceRefresh()
+    timer_stop(state.timer_match)
+    defer UpdateMatch()
     if reuse_filter
         # do not restart match: already filtered out contents will not match.
     else
@@ -177,8 +173,8 @@ enddef
 def StateCleanup()
     # do clean up in timer instead of popup callback, so timer / job can be
     # stopped cleanly.
-    timer_stop(state.timer)
-    timer_stop(state.items_update_timer)
+    timer_stop(state.timer_match)
+    timer_stop(state.timer_source)
     if state->has_key('job_id')
         job_stop(state.job_id)
         sleep 100m
@@ -189,7 +185,7 @@ def StateCleanup()
     state = {}
 enddef
 
-def UIRefresh()
+def UpdateUI()
     const matched_len = state.lines_matched->len()
     const s = matched_len >= CHUNK_SIZE ? $'{CHUNK_SIZE}+' : $'{matched_len}'
     const title_suffix = $'({s}/{state.lines_all->len()}) '
@@ -250,7 +246,7 @@ def RenderFuzzyMatched(lines: list<string>)
     state.winid->popup_settext(text_props)
 enddef
 
-def SourceRefresh()
+def UpdateMatch()
     if empty(state)
         return
     endif
@@ -268,9 +264,9 @@ def SourceRefresh()
             state.line_offset = state.lines_all->len()
         endif
     endif
-    UIRefresh()
+    UpdateUI()
     if !input_empty && state.line_offset < state.lines_all->len()
-        state.timer = timer_start(100, (_) => SourceRefresh())
+        state.timer_match = timer_start(100, (_) => UpdateMatch())
     endif
 enddef
 
@@ -313,5 +309,8 @@ def Win32Quote(arg: string): string
     return cmd
 enddef
 
-# common var {{{1
+# variable {{{1
 const is_win32 = has('win32')
+const CHUNK_SIZE = 5'000
+
+var state: dict<any> = {}

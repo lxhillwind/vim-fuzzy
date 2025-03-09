@@ -33,8 +33,7 @@ def PickAnyCli(cli: string) # {{{1
     )
 enddef
 
-# various pick function {{{1
-def PickGotoProject() # {{{2
+def PickGotoProject() # {{{1
     fuzzy.Pick(
         'Project',
         ProjectListCmd(),
@@ -77,7 +76,7 @@ def ProjectListCmd(): string
     )
 enddef
 
-def PickGotoTabWin() # {{{2
+def PickGotoTabWin() # {{{1
     fuzzy.Pick(
         'TabWin',
         v:none,
@@ -105,7 +104,7 @@ def TabWinLines(): list<string>
     return buf_list
 enddef
 
-def PickLines() # {{{2
+def PickLines() # {{{1
     fuzzy.Pick(
         'LinesInCurrentBuffer',
         v:none,
@@ -116,7 +115,7 @@ def PickLines() # {{{2
     )
 enddef
 
-def PickBuffer() # {{{2
+def PickBuffer() # {{{1
     fuzzy.Pick(
         'Buffer (:ls)',
         v:none,
@@ -129,7 +128,7 @@ def PickBuffer() # {{{2
         }
     )
 enddef
-def PickRecentFiles() # {{{2
+def PickRecentFiles() # {{{1
     const filesInCurrentTab = tabpagebuflist()
         ->mapnew((_, i) => i->getbufinfo())
         ->flattennew(1)->map((_, i) => i.name)
@@ -156,7 +155,7 @@ def PickRecentFiles() # {{{2
     )
 enddef
 
-def PickCwdFiles() # {{{2
+def PickCwdFiles() # {{{1
     var find_cmd = ''
     if is_win32 ? (executable('bash') || executable('busybox')) : true
         if executable('bfs')
@@ -220,7 +219,7 @@ def CwdFilesImpl(remains: list<string>)
     endif
 enddef
 
-def PickUserMapping() # {{{2
+def PickUserMapping() # {{{1
     if v:lang !~ '\v^(en|C$)'
         # change lang to C, so command 'verb map' outputs like
         # "Last set from", instead of using non-English message.
@@ -262,7 +261,7 @@ def PickUserMapping() # {{{2
     )
 enddef
 
-def PickUserCommand() # {{{2
+def PickUserCommand() # {{{1
     if v:lang !~ '\v^(en|C$)'
         # ... see above (PickUserMapping)
         defer execute($'language messages {v:lang}')
