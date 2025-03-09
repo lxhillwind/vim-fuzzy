@@ -72,7 +72,7 @@ export def AppendItems(items: list<string>): bool
     if empty(timer_info(state.timer_source))
         state.timer_source = timer_start(10, (_) => {
             # when timer callback is called, timer_info() will return [].
-            if empty(timer_info(state.timer_match))
+            if state->has_key('timer_match') && empty(timer_info(state.timer_match))
                 UpdateMatch()
             endif
         })
