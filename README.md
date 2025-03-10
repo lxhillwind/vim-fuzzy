@@ -34,6 +34,8 @@ endif
   Vim's readdir() is used (it is slower to count files than `find`, but the
   fuzzy functionality may be faster. So it is the default.)
 
+- `rg` or `grep` is required for `PickGrep`;
+
 ## builtin functionality (exposed as mappings)
 <!-- update this section with vim:
 :Codegen echo '```vim'; awk '/^# *MARKER/ { if(m) {exit} else {m=1; next} } (m) {print}' plugin/fuzzy.vim; echo '```'
@@ -42,6 +44,7 @@ endif
 <!-- Codegen begin -->
 ```vim
 nnoremap <Space>ff <ScriptCmd>PickCwdFiles()<CR>
+nnoremap <Space>fg <ScriptCmd>PickGrep()<CR>
 nnoremap <Space>fr <ScriptCmd>PickRecentFiles()<CR>
 nnoremap <Space>fp <ScriptCmd>PickGotoProject()<CR>
 nnoremap <Space>fc <ScriptCmd>PickUserCommand()<CR>

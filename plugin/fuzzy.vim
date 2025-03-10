@@ -9,6 +9,7 @@ command! -nargs=+ -complete=shellcmd Pick PickAnyCli(<q-args>)
 # They are used in README.md (comment).
 # MARKER
 nnoremap <Space>ff <ScriptCmd>PickCwdFiles()<CR>
+nnoremap <Space>fg <ScriptCmd>PickGrep()<CR>
 nnoremap <Space>fr <ScriptCmd>PickRecentFiles()<CR>
 nnoremap <Space>fp <ScriptCmd>PickGotoProject()<CR>
 nnoremap <Space>fc <ScriptCmd>PickUserCommand()<CR>
@@ -68,6 +69,12 @@ def ProjectListCmd(): string
     var find_repo_bin = exepath('find-repo' .. (is_win32 ? '.exe' : ''))
     if !find_repo_bin->empty()
         return printf('%s %s', shellescape(find_repo_bin), project_dirs)
+    endif
+    if !(
+            (executable('find') && executable('sed'))
+            || is_win32
+            )
+        throw 'expecting `find` and `sed` in $PATH; at lease one is not found!'
     endif
     return (
         $'find {project_dirs} {blacklist} -name .git -prune -print0 2>/dev/null'
@@ -216,6 +223,61 @@ def CwdFilesImpl(remains: list<string>)
     endwhile
     if fuzzy.AppendItems(result) && len(remains) > 0
         timer_start(10, (_) => CwdFilesImpl(remains))
+    endif
+enddef
+
+def PickGrep() # {{{1
+    var grep_cmd = ''
+    var title = ''
+    # for both rg / grep, final "." or "./" is required in non-tty mode;
+    # otherwise it waits for input.
+    if executable('rg')
+        grep_cmd = 'rg --line-number %s ./'
+        title = 'Grep (rg)'
+    elseif executable('grep') || has('win32')
+        # use short option, since long option is not supported in busybox grep.
+        # NOTE: -H / -r is not in posix, though widely supported.
+        #
+        # We do not check if grep is executable in win32;
+        # since the existence of bash.exe (Git for Windows) / busybox.exe
+        # should be sufficient.
+        grep_cmd = 'grep -Hnr %s ./'
+        title = 'Grep (grep)'
+    else
+        throw 'expecting `rg` or `grep` in $PATH; neither is found!'
+    endif
+    var pre_search = input("Input a string (literal) to search for; \n"
+        .. "leave empty to search everything: ")
+    if pre_search !~ '\v^\s*$'
+        pre_search = '-F -- ' .. UnixShellEscape(pre_search)
+    else
+        pre_search = '.'
+    endif
+    fuzzy.Pick(
+        title,
+        printf(grep_cmd, pre_search),
+        v:none,
+        (chosen) => {
+            const m = chosen->matchlist('\v^([^:]+)\:([0-9]+)\:.*')
+            if empty(m)
+                return
+            endif
+            const [filename, linenr] = [m[1], m[2]]
+            execute 'e' fnameescape(filename)
+            execute $':{linenr}'
+            normal! zv
+        }
+    )
+enddef
+
+def UnixShellEscape(s: string): string
+    if has('win32') && (!&shellslash)
+        # we use unix shell in fuzzy#pick() even on win32.
+        # NOTE: '\' in substitute()'s {sub} has special meaning;
+        # to get literal '\', we need to double it.
+        return "'" .. s->substitute("'", "'" .. '\\' .. "''", 'g') .. "'"
+    else
+        return shellescape(s)
     endif
 enddef
 
