@@ -14,6 +14,7 @@ nnoremap <Space>fr <ScriptCmd>PickRecentFiles()<CR>
 nnoremap <Space>fp <ScriptCmd>PickGotoProject()<CR>
 nnoremap <Space>fc <ScriptCmd>PickUserCommand()<CR>
 nnoremap <Space>fm <ScriptCmd>PickUserMapping()<CR>
+nnoremap <Space>fh <ScriptCmd>PickHelpTags()<CR>
 nnoremap <Space>fa :Pick<Space>
 nnoremap <Space>fl <ScriptCmd>PickLines()<CR>
 nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
@@ -360,6 +361,35 @@ def PickUserCommand() # {{{1
                     execute $'normal {line}G'
                 endif
             endif
+        }
+    )
+enddef
+
+def PickHelpTags() # {{{1
+    var data = []
+    for file in globpath(&rtp, 'doc/tags', 0, 1)
+        var lines = []
+        try
+            lines = readfile(file)
+        catch
+            continue
+        endtry
+        for line in lines
+            const m = line->split('\t')->get(0)
+            if !empty(m)
+                data->add(m)
+            endif
+        endfor
+    endfor
+
+    fuzzy.Pick(
+        'HelpTags',
+        v:none,
+        data,
+        (s) => {
+            # avoid ":help | echo 'bad thing'" attack.
+            const escaped = s->substitute('|', 'bar', 'g')
+            execute 'help' escaped
         }
     )
 enddef

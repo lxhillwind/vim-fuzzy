@@ -49,6 +49,7 @@ nnoremap <Space>fr <ScriptCmd>PickRecentFiles()<CR>
 nnoremap <Space>fp <ScriptCmd>PickGotoProject()<CR>
 nnoremap <Space>fc <ScriptCmd>PickUserCommand()<CR>
 nnoremap <Space>fm <ScriptCmd>PickUserMapping()<CR>
+nnoremap <Space>fh <ScriptCmd>PickHelpTags()<CR>
 nnoremap <Space>fa :Pick<Space>
 nnoremap <Space>fl <ScriptCmd>PickLines()<CR>
 nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
