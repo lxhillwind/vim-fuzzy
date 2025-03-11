@@ -52,6 +52,7 @@ nnoremap <Space>fm <ScriptCmd>PickUserMapping()<CR>
 nnoremap <Space>fh <ScriptCmd>PickHelpTags()<CR>
 nnoremap <Space>fa :Pick<Space>
 nnoremap <Space>fl <ScriptCmd>PickLines()<CR>
+nnoremap <Space>fq <ScriptCmd>PickQuickFix()<CR>
 nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
 nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
 ```

@@ -17,6 +17,7 @@ nnoremap <Space>fm <ScriptCmd>PickUserMapping()<CR>
 nnoremap <Space>fh <ScriptCmd>PickHelpTags()<CR>
 nnoremap <Space>fa :Pick<Space>
 nnoremap <Space>fl <ScriptCmd>PickLines()<CR>
+nnoremap <Space>fq <ScriptCmd>PickQuickFix()<CR>
 nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
 nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
 # MARKER
@@ -121,6 +122,30 @@ def PickLines() # {{{1
             execute 'normal ' .. chosen->matchstr('\v^[0-9]+') .. 'G'
         }
     )
+enddef
+
+def PickQuickFix() # {{{1
+    if empty(getqflist())
+        echohl WarningMsg
+        echo 'vim-fuzzy: warning: quickfix list is empty.'
+        echohl NONE
+        return
+    endif
+    const need_switch = &buftype != 'quickfix'
+    if need_switch
+        copen
+    endif
+    fuzzy.Pick(
+        'QuickFix',
+        v:none,
+        getline(1, '$')->mapnew((idx, i) => $'{idx + 1}: {i}'),
+        (chosen) => {
+            execute 'cc ' .. chosen->matchstr('\v^[0-9]+')
+        }
+    )
+    if need_switch
+        wincmd p
+    endif
 enddef
 
 def PickBuffer() # {{{1
