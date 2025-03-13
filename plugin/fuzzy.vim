@@ -200,7 +200,13 @@ def PickCwdFiles() # {{{1
     var [arg_2, arg_3] = [
         v:none,
         () => {
-            var remains = readdir('.')
+            var remains = []
+            try
+                remains = readdir('.')
+            catch /:E484:/
+                # This may happen on Android / directory.
+                popup_notification("readdir('.') failed!", {line: &lines / 2 + 1})
+            endtry
             CwdFilesImpl(remains)
         },
     ]
