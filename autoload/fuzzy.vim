@@ -162,6 +162,19 @@ def PopupFilter(winid: number, key: string): bool
         if !InputIsEmpty()
             reuse_filter = true
         endif
+        if (
+                # not at final
+                strchars(state.input) > state.cursor_offset
+                ) && (
+                        # - "ab" => "a b"; "'ab" => "'a b";
+                        (key =~ '\s' && state.input->strcharpart(state.cursor_offset - 1, 2) =~ '\S\S')
+                        # - "'ab" => "'acb";
+                        # - "a 'b" => "a c'b";
+                        # and maybe more. Just be stricker on this.
+                        || (key !~ '\s')
+                        )
+            reuse_filter = false
+        endif
         state.input = state.input->slice(0, state.cursor_offset) .. key .. state.input->slice(state.cursor_offset)
         state.cursor_offset += 1
     endif
