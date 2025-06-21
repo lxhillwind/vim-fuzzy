@@ -10,7 +10,6 @@
       filter by exact match (`alice` and `bob`);
 - do not block the UI even with large input;
 - support readline-style keybindings;
-    - partially; the mouse cursor is always at the end;
 
 ## external executable dependency
 - On Windows, `bash.exe` or `busybox.exe` is required for functions invoking

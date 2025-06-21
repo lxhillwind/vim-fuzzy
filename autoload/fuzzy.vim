@@ -12,6 +12,7 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
     state.lines_matched = []  # list<string>
     state.lines_shown = []  # list<string>
     state.input = ''
+    state.cursor_offset = 0
     state.line_offset = 0
     state.current_line = 1
     state.move_cursor = ''
@@ -35,6 +36,7 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
         },
     })
     const buf = winbufnr(state.winid)
+    state.bufnr = buf
     # set state.timer_match to a valid value;
     # callback will be executed after back in main loop, so it is safe to fill
     # state.lines_all after timer creation.
@@ -62,6 +64,7 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
     # match id: use it + 1000 as line number.
     matchadd('Function', '\%1l', 10, 1000 + 1, {window: state.winid})
     prop_type_add('FuzzyMatched', {bufnr: buf, highlight: 'String'})
+    prop_type_add('Cursor', {bufnr: buf, highlight: 'Cursor'})
 enddef
 
 export def AppendItems(items: list<string>): bool
@@ -108,18 +111,44 @@ def PopupFilter(winid: number, key: string): bool
     elseif key == "\<C-d>"
         if state.input == ''
             winid->popup_close()
-        endif
-        return true
-    elseif key == "\<Backspace>" || key == "\<C-h>"
-        state.input = state.input[ : -2]
-    elseif key == "\<C-u>"
-        state.input = ''
-    elseif key == "\<C-w>"
-        if state.input->match('\s') >= 0
-            state.input = state.input->substitute('\v(\S+|)\s*$', '', '')
+            return true
         else
-            state.input = ''
+            state.input = state.input->slice(0, state.cursor_offset) .. state.input->slice(state.cursor_offset + 1)
         endif
+    elseif key == "\<Backspace>" || key == "\<C-h>"
+        state.input = state.input->slice(0, max([0, state.cursor_offset - 1])) .. state.input->slice(state.cursor_offset)
+        state.cursor_offset = max([0, state.cursor_offset - 1])
+    elseif key == "\<C-u>"
+        state.input = state.input->slice(state.cursor_offset)
+        state.cursor_offset = 0
+    elseif key == "\<C-w>"
+        var left = state.input->slice(0, state.cursor_offset)
+        const right = state.input->slice(state.cursor_offset)
+        if left->match('\s') >= 0
+            left = left->substitute('\v(\S+|)\s*$', '', '')
+        else
+            left = ''
+        endif
+        state.input = left .. right
+        state.cursor_offset = strchars(left)
+    elseif key == "\<C-a>"
+        state.cursor_offset = 0
+        UpdateUI({force: true})
+        return true
+    elseif key == "\<C-e>"
+        state.cursor_offset = strchars(state.input)
+        UpdateUI({force: true})
+        return true
+    elseif key == "\<C-f>"
+        state.cursor_offset += 1
+        state.cursor_offset = min([strchars(state.input), state.cursor_offset])
+        UpdateUI({force: true})
+        return true
+    elseif key == "\<C-b>"
+        state.cursor_offset -= 1
+        state.cursor_offset = max([0, state.cursor_offset])
+        UpdateUI({force: true})
+        return true
     elseif key == "\<C-k>" || key == "\<C-p>"
         MoveCursor('up')
         return true
@@ -133,7 +162,8 @@ def PopupFilter(winid: number, key: string): bool
         if !InputIsEmpty()
             reuse_filter = true
         endif
-        state.input ..= key
+        state.input = state.input->slice(0, state.cursor_offset) .. key .. state.input->slice(state.cursor_offset)
+        state.cursor_offset += 1
     endif
 
     timer_stop(state.timer_match)
@@ -149,7 +179,8 @@ def PopupFilter(winid: number, key: string): bool
 enddef
 
 def GenHeader(): string
-    return '> ' .. state.input .. '|'
+    # final space is for cursor at line end
+    return '> ' .. state.input .. ' '
 enddef
 
 def MoveCursor(pos: string)
@@ -192,7 +223,7 @@ def StateCleanup()
     state = {}
 enddef
 
-def UpdateUI()
+def UpdateUI(opt={})
     const matched_len = state.lines_matched->len()
     const s = matched_len >= CHUNK_SIZE ? $'{CHUNK_SIZE}+' : $'{matched_len}'
     const title_suffix = $'({s}/{state.lines_all->len()}) '
@@ -206,7 +237,7 @@ def UpdateUI()
     lines->add(GenHeader())
     # 2: height - line[0] - offset
     lines->extend(state.lines_matched[ : state.height - 2])
-    if state.lines_shown == lines
+    if state.lines_shown == lines && !opt->get('force')
         # avoid popup_settext() if possible, to improve a little performance.
         return
     endif
@@ -214,10 +245,15 @@ def UpdateUI()
 
     if InputIsEmpty()
         const text = lines->mapnew((_, i) => strdisplaywidth(i) <= &columns ? i : i->strpart(0, &columns))
-        state.winid->popup_settext(text)
+        var text_props = []
+        for i in range(0, len(text) - 1)
+            text_props->add({text: text[i], props: []})
+        endfor
+        state.winid->popup_settext(text_props)
     else
         RenderFuzzyMatched(lines)
     endif
+    UpdatePromptCursor()
 
     # if current_line is out of range, move it to the last line.
     MoveCursor('')
@@ -235,6 +271,16 @@ def SplitMatch(pat: string): list<string>
         endif
     endfor
     return [m_fuzzy_list->join(' '), m_exact_list->join(' ')]
+enddef
+
+def UpdatePromptCursor()
+    # see GenHeader()
+    const prefix_len = '> '->len()
+    # TODO edge case? (line too long)
+    prop_remove({bufnr: state.bufnr, type: 'Cursor'}, 1)
+    prop_add(1, prefix_len + state.input->slice(0, state.cursor_offset)->strlen() + 1, {
+        bufnr: state.bufnr, type: 'Cursor', length: 1,
+    })
 enddef
 
 def RenderFuzzyMatched(lines: list<string>)
