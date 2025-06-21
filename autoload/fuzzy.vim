@@ -80,6 +80,14 @@ export def AppendItems(items: list<string>): bool
     return true
 enddef
 
+def InputIsEmpty(): bool
+    if empty(state.input) || state.input =~ '^\s*$'
+        return true
+    endif
+    const [m_fuzzy, m_exact] = SplitMatch(state.input)
+    return (empty(m_fuzzy) && empty(m_exact))
+enddef
+
 def PopupFilter(winid: number, key: string): bool
     state.move_cursor = ''
     var reuse_filter = false
@@ -122,8 +130,7 @@ def PopupFilter(winid: number, key: string): bool
         # like <MouseUp> / <CursorHold> ...
         return true
     else
-        const input_empty = empty(state.input) || state.input =~ '^\s*$'
-        if !input_empty
+        if !InputIsEmpty()
             reuse_filter = true
         endif
         state.input ..= key
@@ -205,8 +212,7 @@ def UpdateUI()
     endif
     state.lines_shown = lines
 
-    const input_empty = empty(state.input) || state.input =~ '^\s*$'
-    if input_empty
+    if InputIsEmpty()
         const text = lines->mapnew((_, i) => strdisplaywidth(i) <= &columns ? i : i->strpart(0, &columns))
         state.winid->popup_settext(text)
     else
@@ -217,8 +223,25 @@ def UpdateUI()
     MoveCursor('')
 enddef
 
+def SplitMatch(pat: string): list<string>
+    var [m_fuzzy_list, m_exact_list] = [[], []]
+    for i in pat->split('\s\+')
+        if i->len() > 0 && i[0] == "'"
+            if i->len() > 1
+                m_exact_list->add(i[1 : ])
+            endif
+        else
+            m_fuzzy_list->add(i)
+        endif
+    endfor
+    return [m_fuzzy_list->join(' '), m_exact_list->join(' ')]
+enddef
+
 def RenderFuzzyMatched(lines: list<string>)
-    const [text, position, _] = matchfuzzypos(lines[1 : ], state.input)
+    const [m_fuzzy, m_exact] = SplitMatch(state.input)
+    const [text, position, _] = !empty(m_fuzzy) ?
+        matchfuzzypos(lines[1 : ], m_fuzzy) :
+        [lines[1 : ], [], []]
     var text_props = []
     text_props->add({text: lines[0], props: []})
     for i in range(0, len(text) - 1)
@@ -227,7 +250,7 @@ def RenderFuzzyMatched(lines: list<string>)
         if strdisplaywidth(text_display) > &columns
             text_display = text_display->strpart(0, &columns)
         endif
-        for j in position[i]
+        for j in !empty(m_fuzzy) ? position[i] : []
             const col = byteidx(text[i], j)
             if col >= strlen(text_display)
                 continue
@@ -235,6 +258,17 @@ def RenderFuzzyMatched(lines: list<string>)
             props->add({
                 col: col + 1,
                 length: 1,
+                type: 'FuzzyMatched',
+            })
+        endfor
+        for j in !empty(m_exact) ? m_exact->split('\s') : []
+            const col = text[i]->stridx(j)
+            if col >= strlen(text_display)
+                continue
+            endif
+            props->add({
+                col: col + 1,
+                length: min([strlen(j), strlen(text_display) - col]),
                 type: 'FuzzyMatched',
             })
         endfor
@@ -250,22 +284,28 @@ def UpdateMatch()
     if empty(state)
         return
     endif
-    const input_empty = empty(state.input) || state.input =~ '^\s*$'
-    if input_empty
+    if InputIsEmpty()
         state.lines_matched = state.lines_all
     else
-        const matched = matchfuzzy(state.lines_all[state.line_offset : state.line_offset + CHUNK_SIZE], state.input)
-        # TODO limit lines to test.
-        state.lines_matched = matchfuzzy(matched + state.lines_matched, state.input)
+        const [m_fuzzy, m_exact] = SplitMatch(state.input)
+        var lines_to_match = state.lines_matched + state.lines_all[state.line_offset : state.line_offset + CHUNK_SIZE]
+        if !empty(m_fuzzy)
+            lines_to_match = matchfuzzy(lines_to_match, m_fuzzy)
+        endif
+        if !empty(m_exact)
+            for j in m_exact->split('\s')
+                lines_to_match->filter((_, i) => i->stridx(j) >= 0)
+            endfor
+        endif
         # omit contents with too low score.
-        state.lines_matched = state.lines_matched[ : CHUNK_SIZE]
+        state.lines_matched = lines_to_match[ : CHUNK_SIZE]
         state.line_offset += CHUNK_SIZE
         if state.line_offset > state.lines_all->len()
             state.line_offset = state.lines_all->len()
         endif
     endif
     UpdateUI()
-    if !input_empty && state.line_offset < state.lines_all->len()
+    if !InputIsEmpty() && state.line_offset < state.lines_all->len()
         state.timer_match = timer_start(100, (_) => UpdateMatch())
     endif
 enddef

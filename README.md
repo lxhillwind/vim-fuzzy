@@ -5,6 +5,9 @@
 
 ## feature
 - use Vim's `matchfuzzy()` function; do not depend on an external executable (like fzf / skim / zf...);
+- use `'` to insert a literal search;
+    - example: `hello 'alice world 'bob` will do fuzzy match with string `hello world` and
+      filter by exact match (`alice` and `bob`);
 - do not block the UI even with large input;
 - support readline-style keybindings;
     - partially; the mouse cursor is always at the end;
