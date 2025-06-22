@@ -159,22 +159,24 @@ def PopupFilter(winid: number, key: string): bool
         # like <MouseUp> / <CursorHold> ...
         return true
     else
-        if !InputIsEmpty()
-            reuse_filter = true
-        endif
-        if (
-                # not at final
-                strchars(state.input) > state.cursor_offset
-                ) && (
-                        # - "ab" => "a b"; "'ab" => "'a b";
-                        (key =~ '\s' && state.input->strcharpart(state.cursor_offset - 1, 2) =~ '\S\S')
-                        # - "'ab" => "'acb";
-                        # - "a 'b" => "a c'b";
-                        # and maybe more. Just be stricker on this.
-                        || (key !~ '\s')
-                        )
+        if InputIsEmpty()
+            # start new search
             reuse_filter = false
+        elseif strchars(state.input) == state.cursor_offset
+            # at final
+            reuse_filter = true
+        elseif (key =~ '\s' && state.input->strcharpart(state.cursor_offset - 1, 2) !~ '\S\S')
+            # - not: "ab" => "a b"; "'ab" => "'a b";
+            reuse_filter = true
+        elseif (key !~ '\s' && state.input->slice(0, state.cursor_offset + 1)->matchstr('\S*$') !~ "\\v^'|'$")
+            # - not: "'ab" => "'acb";
+            # - not: "a 'b" => "a c'b";
+            reuse_filter = true
+            # TODO: "'ab" => "'cab" should reuse_filter;
         endif
+        # if reuse_filter  # DEBUG
+        #     popup_notification([state.input, key], {time: 500})
+        # endif
         state.input = state.input->slice(0, state.cursor_offset) .. key .. state.input->slice(state.cursor_offset)
         state.cursor_offset += 1
     endif
