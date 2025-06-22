@@ -61,10 +61,10 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
         }
         state.job_id = job_start(cmd_opt.cmd, cmd_opt.opt)
     endif
-    # match id: use it + 1000 as line number.
-    matchadd('Function', '\%1l', 10, 1000 + 1, {window: state.winid})
     prop_type_add('FuzzyMatched', {bufnr: buf, highlight: 'String'})
     prop_type_add('Cursor', {bufnr: buf, highlight: 'Cursor'})
+    prop_type_add('Bold', {bufnr: buf, highlight: 'Bold'})
+    prop_type_add('Prompt', {bufnr: buf, highlight: 'Function'})
 enddef
 
 export def AppendItems(items: list<string>): bool
@@ -131,28 +131,28 @@ def PopupFilter(winid: number, key: string): bool
         endif
         state.input = left .. right
         state.cursor_offset = strchars(left)
-    elseif key == "\<C-a>"
+    elseif key == "\<C-a>" || key == "\<Home>"
         state.cursor_offset = 0
         UpdateUI({force: true})
         return true
-    elseif key == "\<C-e>"
+    elseif key == "\<C-e>" || key == "\<End>"
         state.cursor_offset = strchars(state.input)
         UpdateUI({force: true})
         return true
-    elseif key == "\<C-f>"
+    elseif key == "\<C-f>" || key == "\<Right>"
         state.cursor_offset += 1
         state.cursor_offset = min([strchars(state.input), state.cursor_offset])
         UpdateUI({force: true})
         return true
-    elseif key == "\<C-b>"
+    elseif key == "\<C-b>" || key == "\<Left>"
         state.cursor_offset -= 1
         state.cursor_offset = max([0, state.cursor_offset])
         UpdateUI({force: true})
         return true
-    elseif key == "\<C-k>" || key == "\<C-p>"
+    elseif key == "\<C-k>" || key == "\<C-p>" || key == "\<Up>"
         MoveCursor('up')
         return true
-    elseif key == "\<C-j>" || key == "\<C-n>"
+    elseif key == "\<C-j>" || key == "\<C-n>" || key == "\<Down>"
         MoveCursor('down')
         return true
     elseif key->matchstr('^.') == "\x80"
@@ -214,6 +214,7 @@ def MoveCursor(pos: string)
     endif
 
     if current_line_old != state.current_line
+        # match id: use it + 1000 as line number.
         if current_line_old >= 2
             matchdelete(1000 + current_line_old, state.winid)
         endif
@@ -292,9 +293,17 @@ def UpdatePromptCursor()
     # see GenHeader()
     const prefix_len = '> '->len()
     # TODO edge case? (line too long)
-    prop_remove({bufnr: state.bufnr, type: 'Cursor'}, 1)
+    for type in ['Bold', 'Cursor', 'Prompt']
+        prop_remove({bufnr: state.bufnr, type: type}, 1)
+    endfor
+    prop_add(1, 1, {
+        bufnr: state.bufnr, type: 'Bold', length: state.input->strlen() + prefix_len,
+    })
     prop_add(1, prefix_len + state.input->slice(0, state.cursor_offset)->strlen() + 1, {
         bufnr: state.bufnr, type: 'Cursor', length: 1,
+    })
+    prop_add(1, 1, {
+        bufnr: state.bufnr, type: 'Prompt', length: prefix_len,
     })
 enddef
 
