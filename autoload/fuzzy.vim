@@ -121,6 +121,8 @@ def PopupFilter(winid: number, key: string): bool
     elseif key == "\<C-u>"
         state.input = state.input->slice(state.cursor_offset)
         state.cursor_offset = 0
+    elseif key == "\<C-k>"
+        state.input = state.input->slice(0, state.cursor_offset)
     elseif key == "\<C-w>"
         var left = state.input->slice(0, state.cursor_offset)
         const right = state.input->slice(state.cursor_offset)
@@ -149,10 +151,10 @@ def PopupFilter(winid: number, key: string): bool
         state.cursor_offset = max([0, state.cursor_offset])
         UpdateUI({force: true})
         return true
-    elseif key == "\<C-k>" || key == "\<C-p>" || key == "\<Up>"
+    elseif key == "\<C-p>" || key == "\<Up>"
         MoveCursor('up')
         return true
-    elseif key == "\<C-j>" || key == "\<C-n>" || key == "\<Down>"
+    elseif key == "\<C-n>" || key == "\<Down>"
         MoveCursor('down')
         return true
     elseif key->matchstr('^.') == "\x80"
