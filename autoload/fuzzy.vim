@@ -62,8 +62,8 @@ export def Pick(Title: string = '', Cmd: string = '', Lines: any = [], Callback:
         state.job_id = job_start(cmd_opt.cmd, cmd_opt.opt)
     endif
     prop_type_add('FuzzyMatched', {bufnr: buf, highlight: 'String'})
-    prop_type_add('Cursor', {bufnr: buf, highlight: 'Cursor'})
-    prop_type_add('Bold', {bufnr: buf, highlight: 'Bold'})
+    prop_type_add('Cursor', {bufnr: buf, highlight: hlID('Cursor')->empty() ? 'Visual' : 'Cursor'})
+    prop_type_add('Bold', {bufnr: buf, highlight: hlID('Bold')->empty() ? 'Normal' : 'Bold'})
     prop_type_add('Prompt', {bufnr: buf, highlight: 'Function'})
 enddef
 
