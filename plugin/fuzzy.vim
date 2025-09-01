@@ -22,8 +22,13 @@ nnoremap <Space>fb <ScriptCmd>PickBuffer()<CR>
 nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
 # MARKER
 
-# common var {{{1
+# common var / util func {{{1
 const is_win32 = has('win32')
+
+def EditOrSplit(s: string)
+    if &modified | split | endif
+    execute 'edit' fnameescape(s)
+enddef
 
 def PickAnyCli(cli: string) # {{{1
     fuzzy.Pick(
@@ -31,7 +36,7 @@ def PickAnyCli(cli: string) # {{{1
         cli,
         v:none,
         (s) => {
-            execute('e ' .. fnameescape(s))
+            EditOrSplit(s)
         }
     )
 enddef
@@ -42,6 +47,7 @@ def PickGotoProject() # {{{1
         ProjectListCmd(),
         v:none,
         (chosen) => {
+            if &modified | split | endif
             execute 'lcd' fnameescape(chosen)
             if exists(':Lf') == 2
                 # use ":silent" to avoid prompt when using PickFallback.
@@ -183,7 +189,7 @@ def PickRecentFiles() # {{{1
                 && blacklistName->index(fnamemodify(absName, ':t')) < 0
         }),
         (s) => {
-            execute 'e' fnameescape(s)
+            EditOrSplit(s)
         }
     )
 enddef
@@ -219,7 +225,7 @@ def PickCwdFiles() # {{{1
         arg_2,
         arg_3,
         (s) => {
-            execute 'e' fnameescape(s)
+            EditOrSplit(s)
         }
     )
 enddef
@@ -295,7 +301,7 @@ def PickGrep() # {{{1
                 return
             endif
             const [filename, linenr] = [m[1], m[2]]
-            execute 'e' fnameescape(filename)
+            EditOrSplit(filename)
             execute $':{linenr}'
             normal! zv
         }
@@ -346,7 +352,7 @@ def PickUserMapping() # {{{1
                 if !empty(line_info)
                     const [file, line] = line_info[1 : 2]
                     if bufname() != file
-                        execute 'edit' fnameescape(file)
+                        EditOrSplit(file)
                     endif
                     execute $'normal {line}G'
                 endif
@@ -387,7 +393,7 @@ def PickUserCommand() # {{{1
                 if !empty(line_info)
                     const [file, line] = line_info[1 : 2]
                     if bufname() != file
-                        execute 'edit' fnameescape(file)
+                        EditOrSplit(file)
                     endif
                     execute $'normal {line}G'
                 endif
