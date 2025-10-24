@@ -26,8 +26,12 @@ nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
 const is_win32 = has('win32')
 
 def EditOrSplit(s: string)
-    if &modified | split | endif
-    execute 'edit' fnameescape(s)
+    try
+        execute 'edit' fnameescape(s)
+    catch /:E37:/
+        split
+        execute 'edit' fnameescape(s)
+    endtry
 enddef
 
 def PickAnyCli(cli: string) # {{{1
