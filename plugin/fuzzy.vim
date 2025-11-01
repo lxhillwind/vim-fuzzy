@@ -89,8 +89,14 @@ def ProjectListCmd(): string
         throw 'expecting `find` and `sed` in $PATH; at lease one is not found!'
     endif
     return (
-        $'find {project_dirs} {blacklist} -name .git -prune -print0 2>/dev/null'
-        .. ' | { if [ -x /usr/bin/cygpath ]; then xargs -r -0 cygpath -w; else xargs -r -0 -n 1; fi; }'
+        $'find {project_dirs} {blacklist} -name .git -prune '
+        .. (is_win32 ? (
+            '-print0 2>/dev/null'
+            # if using git bash in win32 vim, then convert path.
+            .. ' | { if [ -x /usr/bin/cygpath ]; then xargs -r -0 cygpath -w; else xargs -r -0 -n 1; fi; }'
+            # obey pathsep convention.
+            .. (&shellslash ? ' | tr "\\" /' : '')
+        ) : '-print 2>/dev/null')
         .. " | sed -E 's#[\\/].git$##'"
     )
 enddef
@@ -183,10 +189,8 @@ def PickRecentFiles() # {{{1
         ->mapnew((_, i) => i)
         ->filter((_, i) => {
             const absName = i->g:ExpandHead()
-            if is_win32 && absName->match('^//') >= 0
+            if (is_win32 || has('win32unix')) && absName->substitute('\', '/', 'g')->match('^//') >= 0
                 # skip unc path, since if the file is not readable, filereadable() will hang.
-                #
-                # we have "set shellslash", so only check // here.
                 return false
             endif
             return absName->filereadable() && filesInCurrentTab->index(absName) < 0
