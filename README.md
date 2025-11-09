@@ -64,8 +64,11 @@ nnoremap <Space>ft <ScriptCmd>PickGotoTabWin()<CR>
 arguments; when confirmed, Vim will edit the selected item.
 
 ## keybinding in fuzzy finder ui
-- `<C-h>` / `<C-w>` / `<C-u>` to kill a char / word / whole line;
-- `<C-j>` / `<C-n>` to select next item; `<C-k>` / `<C-p>` to select previous item;
+- `<C-h>` / `<C-w>` / `<C-u>` / `<C-k>` to kill a char / word / to-start /
+  to-end;
+- `<C-n>` to select next item; `<C-p>` to select previous item;
+- `<C-a>` / `<C-e>` / `<C-f>` / `<C-b>` to move cursor (home / end / right /
+  left);
 - `<C-c>` / `<C-[>` / `<Esc>` / (when the search string is empty: `<C-d>`) to quit fuzzy finder;
 
 ## extend functionalities by yourself
